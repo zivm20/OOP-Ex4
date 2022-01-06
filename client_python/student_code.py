@@ -5,7 +5,10 @@ Very simple GUI example for python client to communicates with the server and "p
 """
 from types import SimpleNamespace
 from client import Client
+from GraphAlgo import GraphAlgo
+from DiGraph import DiGraph
 import json
+from Agent import Agent
 from pygame import gfxdraw
 import pygame
 from pygame import *
@@ -76,6 +79,29 @@ client.add_agent("{\"id\":0}")
 
 # this commnad starts the server - the game is running now
 client.start()
+client.time_to_end()
+agents_obj = [Agent()]
+pokemon_graph = GraphAlgo()
+pokemon_graph.load_from_json(graph_json)
+
+def load_pokemon_graph(pokemon_dict,pokemons,current_size,pokemon_graph):
+    out = []
+    for p in pokemons:
+        isIn = False
+        x, y, _ = p.pos.split(',')
+        p["pos"] = (my_scale(float(x), x=True), my_scale(float(y), y=True)) 
+        
+        for p_dict in pokemon_dict:
+            if p["pos"][0] == p_dict["pos"][0] and p["pos"][1] == p_dict["pos"][1] and p["type"] == p_dict["type"] and p["value"]==p_dict["value"]:
+                isIn = True
+        if isIn == True:
+            out.append(p)
+            out[-1]["id"] = current_size
+            current_size+=1
+
+            
+
+
 
 """
 The code below should be improved significantly:
@@ -83,8 +109,15 @@ The GUI and the "algo" are mixed - refactoring using MVC design pattern is requi
 """
 
 while client.is_running() == 'true':
-    pokemons = json.loads(client.get_pokemons(),
-                          object_hook=lambda d: SimpleNamespace(**d)).Pokemons
+
+    #for agents in agents_obj:
+        #if agents.update():
+
+
+
+
+
+    pokemons = json.loads(client.get_pokemons(),object_hook=lambda d: SimpleNamespace(**d)).Pokemons
     pokemons = [p.Pokemon for p in pokemons]
     for p in pokemons:
         x, y, _ = p.pos.split(',')
@@ -159,7 +192,8 @@ while client.is_running() == 'true':
             client.choose_next_edge(
                 '{"agent_id":'+str(agent.id)+', "next_node_id":'+str(next_node)+'}')
             ttl = client.time_to_end()
-            print(ttl, client.get_info())
+            #print(ttl, client.get_info())
+            print(pokemons)
 
     client.move()
 # game over:
