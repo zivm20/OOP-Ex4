@@ -8,16 +8,16 @@ from client import Client
 EPS = 0.001
 class Agent:
 
-    def __init__(self):
-        self.id = 0
-        self.weight_per_time = 0
+    def __init__(self,id,weight_per_time,src,dest):
+        self.id = id
+        self.weight_per_time = weight_per_time
 
         self.route = []
         self.pokemon_route = []
         self.position = 0
         self.time = 0
-        self.dest = -1
-        self.src = -1
+        self.dest = dest
+        self.src = src
 
     #updates the agent
     def update(self, graph_algo:GraphAlgo, client:Client, time:int):
@@ -48,7 +48,8 @@ class Agent:
     #returns true iff the agent reached a node and now requires us to update the server
     def update_required(self, graph_algo:GraphAlgo, time:int)->bool:
         graph = graph_algo.get_graph()
-        return self.get_state_at_time(graph,time)["dest"] != self.dest
+        real_dest = self.get_state_at_time(graph,time)["dest"]
+        return real_dest != self.dest
     
     #returns the state of the agent at some time stamp
     def get_state_at_time(self,graph:DiGraph,time:int) ->tuple:
@@ -58,23 +59,29 @@ class Agent:
         curr_pokemon = self.pokemon_route
         src = self.src
         dest = self.dest
-        for i in range(time):
-            weight = graph.all_out_edges_of_node(src)[dest]
-            while i < time and curr_pos < weight:
-                curr_pos = curr_pos+self.weight_per_time
-                i+=1
-            if i<time:
-                if 0<len(curr_route):
-                    if graph.get_all_v[dest].isPokemon():
-                        curr_pokemon = curr_pokemon[1:]
-                    curr_pos = 0
-                    src = dest
-                    dest = self.route[0]
-                    curr_route = curr_route[1:]
-                else:
-                    curr_pos = 0
-                    src = dest
-                    dest = -1
+        if dest == -1 and len(curr_route)>0:
+                dest = curr_route[0]
+        if dest != -1:
+            for i in range(time):
+                
+                
+                
+                weight = graph.all_out_edges_of_node(src)[dest]
+                while i < time and curr_pos < weight:
+                    curr_pos = curr_pos+self.weight_per_time
+                    i+=1
+                if i<time:
+                    if 0<len(curr_route):
+                        if graph.get_all_v[dest].isPokemon():
+                            curr_pokemon = curr_pokemon[1:]
+                        curr_pos = 0
+                        src = dest
+                        dest = self.route[0]
+                        curr_route = curr_route[1:]
+                    else:
+                        curr_pos = 0
+                        src = dest
+                        dest = -1
         return {"pos":curr_pos,"src":src,"dest":dest,"route":curr_route,"pokemon_route":curr_pokemon}
 
     #algorithm for determening the best way to reallocate the pokemon assigned to the agents
@@ -82,7 +89,7 @@ class Agent:
         new_pokemon_route = []
         route_cost = {}
         new_route_cost = {}
-        if p_to_add != -1 and graph_algo.get_graph().get_all_v[p_to_add].isPokemon() and p_to_add != self.dest:
+        if p_to_add != -1 and graph_algo.get_graph().get_all_v()[p_to_add].isPokemon() and p_to_add != self.dest:
             new_pokemon_route = self.pokemon_route
             if (p_to_add in self.route) == False:
                 route_cost = self.calc_route_costs(graph_algo,self.route)
@@ -105,7 +112,7 @@ class Agent:
     #use tsp to find the shortest path that starts at this agents "dest" and goes over all the pokemon in the list
     def build_route_from_pokemons(self, graph_algo,new_pokemon_route):
         new_route_p_order,_ = graph_algo.TSP_recursive(self.dest,new_pokemon_route)
-        _,new_route_to_first = self.shortest_path(self.dest,new_route_p_order[0])
+        _,new_route_to_first = graph_algo.shortest_path(self.dest,new_route_p_order[0])
         temp = new_route_to_first + new_route_p_order
         new_route = []
         for i in range(len(temp)):
@@ -130,6 +137,7 @@ class Agent:
 
     #takes a new pokemon that was summoned with its src and dest, changes this route to pass throgh the pokemon if its on the route
     def updateRoute(self,graph:DiGraph,src:int,pokemon_node:int,dest:int):
+
         if src == self.src and dest == self.dest and graph.all_out_edges_of_node(src)[dest]>self.position:
             self.route = [dest]+self.route
             self.dest = pokemon_node
@@ -153,7 +161,8 @@ class Agent:
 
 
 
-
+    def getId(self):
+        return self.id
 
 
 
