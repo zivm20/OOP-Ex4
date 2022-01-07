@@ -35,11 +35,10 @@ client.start_connection(HOST, PORT)
 pokemons = client.get_pokemons()
 pokemons_obj = json.loads(pokemons, object_hook=lambda d: SimpleNamespace(**d))
 
-print(pokemons)
-
 graph_json = client.get_graph()
 
 FONT = pygame.font.SysFont('Arial', 20, bold=True)
+FONT2 = pygame.font.SysFont('Arial', 12, bold=True)
 # load the json string into SimpleNamespace Object
 
 graph = json.loads(
@@ -75,22 +74,22 @@ def my_scale(data, x=False, y=False):
 
 radius = 15
 
-client.add_agent("{\"id\":0}")
-# client.add_agent("{\"id\":1}")
-# client.add_agent("{\"id\":2}")
-# client.add_agent("{\"id\":3}")
+print(client.add_agent("{\"id\":0}"))
+print(client.add_agent("{\"id\":1}"))
+print(client.add_agent("{\"id\":2}"))
+print(client.add_agent("{\"id\":3}"))
 
 # this commnad starts the server - the game is running now
 client.start()
 endTime = int(client.time_to_end())
-
+print(endTime)
 agents = json.loads(client.get_agents())["Agents"]
 agents = [agent["Agent"] for agent in agents]
 agents_obj = [Agent(a["id"],a["speed"]/1000,a["src"],a["dest"]) for a in agents]
 
 
 pokemon_graph = GraphAlgo()
-pokemon_graph.load_from_json(graph_json)
+pokemon_graph.load_from_json(json_string=graph_json)
 
 pokemon_dict = []
 current_size = pokemon_graph.get_graph().v_size()
@@ -101,7 +100,7 @@ def load_pokemon_graph(pokemon_dict,pokemons,current_size,pokemon_graph:GraphAlg
     for p in pokemons:
         isIn = False
         x, y, _ = p["pos"].split(',')
-        p["_pos"] = (x,y)
+        p["_pos"] = (float(x),float(y))
         p["pos"] = (my_scale(float(x), x=True), my_scale(float(y), y=True)) 
         
         for p_dict in pokemon_dict:
@@ -118,8 +117,8 @@ def load_pokemon_graph(pokemon_dict,pokemons,current_size,pokemon_graph:GraphAlg
             for src in pokemon_graph.get_graph().get_all_v().values():
                 if src.isPokemon() == False:
                     for _, weight in pokemon_graph.get_graph().all_out_edges_of_node(src.getId()).items():
+                        dest = pokemon_graph.get_graph().get_all_v()[_]
                         if dest.isPokemon() == False:
-                            dest = pokemon_graph.get_graph().get_all_v()[_]
                             distance = abs(  (dest.getPos()[0] - src.getPos()[0])*(src.getPos()[1] - out[-1]["_pos"][1]) - (src.getPos()[0] - out[-1]["_pos"][0])*(dest.getPos()[1] - src.getPos()[1]))
                             distance = distance/(  ( (dest.getPos()[0] - src.getPos()[0])**2 + (dest.getPos()[1] - src.getPos()[1])**2 ) **0.5   )
                             #line from src point to p
@@ -149,14 +148,14 @@ def load_pokemon_graph(pokemon_dict,pokemons,current_size,pokemon_graph:GraphAlg
             w = pokemon_graph.get_graph().all_out_edges_of_node(out[-1]["src"])[out[-1]["dest"]]
             pokemon_graph.get_graph().add_edge(out[-1]["id"],out[-1]["dest"],w - out[-1]["weight"])
     
-    return out
+    return out, current_size
 
 
 
 def assign_pokemon(pokemon, agents:List[Agent],pokemon_graph:GraphAlgo):
     #update routes
     for agent in agents:
-        agent.updateRoute(pokemon_graph,pokemon["src"],pokemon["id"],pokemon["dest"])
+        agent.updateRoute(pokemon_graph.get_graph(),pokemon["src"],pokemon["id"],pokemon["dest"])
 
     #redistribute pokemon to agents
     minChange = float('inf')
@@ -164,6 +163,7 @@ def assign_pokemon(pokemon, agents:List[Agent],pokemon_graph:GraphAlgo):
     for agent in agents:
         distrib = {}
         change = agent.simulate_change(pokemon_graph,p_to_add=pokemon["id"],best_p_found=distrib)
+        
         if(change!=0):
             for agent2 in agents:
                 if agent != agent2:
@@ -173,15 +173,16 @@ def assign_pokemon(pokemon, agents:List[Agent],pokemon_graph:GraphAlgo):
                 best_pokemon_distrib = distrib
     pokemon_assign = { agent.getId():[] for agent in agents}
     #get the best destribution
-    for key, value in best_pokemon_distrib:
+    for key, value in best_pokemon_distrib.items():
         if pokemon_graph.get_graph().get_all_v()[key].isPokemon():
             pokemon_assign[value["id"]].append(key)
-
+    
     #build from that distribution
     for agent in agents:
-        agent.build_route_from_pokemons(pokemon_graph,pokemon_assign[agent.getId()])
-
-
+        t,sr,de = agent.build_route_from_pokemons(pokemon_graph,pokemon_assign[agent.getId()],inplace=True)
+        #print(t)
+        
+        
 
 """
 The code below should be improved significantly:
@@ -193,7 +194,8 @@ while client.is_running() == 'true':
     pokemons = json.loads(client.get_pokemons())["Pokemons"]
     pokemons = [p["Pokemon"] for p in pokemons]
     
-    new_pokemons = load_pokemon_graph(pokemon_dict,pokemons,current_size,pokemon_graph)
+    new_pokemons,current_size = load_pokemon_graph(pokemon_dict,pokemons,current_size,pokemon_graph)
+    
     for pokemon in new_pokemons:
         assign_pokemon(pokemon,agents_obj,pokemon_graph)
     pokemon_dict = pokemon_dict+new_pokemons
@@ -258,8 +260,18 @@ while client.is_running() == 'true':
         pygame.draw.circle(screen, Color(122, 61, 23),
                            (int(agent.pos.x), int(agent.pos.y)), 10)
     # draw pokemons (note: should differ (GUI wise) between the up and the down pokemons (currently they are marked in the same way).
-    for p in pokemons:
-        pygame.draw.circle(screen, Color(0, 255, 255), (int(p.pos.x), int(p.pos.y)), 10)
+    for i in range(len(pokemons)):
+
+        #pygame.draw.circle(screen, Color(0, 255, 255), (int(p.pos.x), int(p.pos.y)), 10)
+        gfxdraw.filled_circle(screen, int(pokemons[i].pos.x), int(pokemons[i].pos.y),
+                              radius, Color(0, 255, 255))
+        gfxdraw.aacircle(screen, int(pokemons[i].pos.x), int(pokemons[i].pos.y),
+                         radius, Color(255, 255, 255))
+        for p_dict in pokemon_dict:
+            if pokemons[i].pos.x == p_dict["pos"][0] and pokemons[i].pos.y == p_dict["pos"][1] and pokemons[i].type == p_dict["type"] and pokemons[i].value==p_dict["value"]:
+                id_srf = FONT2.render(str(p_dict["id"])+","+str(pokemons[i].type), True, Color(0, 0, 0))
+        rect = id_srf.get_rect(center=(int(pokemons[i].pos.x), int(pokemons[i].pos.y)))
+        screen.blit(id_srf, rect)
 
     # update screen changes
     display.update()
@@ -281,8 +293,13 @@ while client.is_running() == 'true':
         client.move()
     j+=1
     """
-
-    for agent in agents_obj:
-        if(agent.update(pokemon_graph,client, endTime-int(client.time_to_end()))):
-            client.move()
+    update = False
+    for i in range(len(agents_obj)):
+        if(agents_obj[i].update(pokemon_graph,client, endTime-int(client.time_to_end()),real_dest=agents[i].dest )):
+            update = True
+            print(len(pokemon_dict))
+    if update:
+        client.move()
+        #for i in range(len(agents_obj)):
+            #print(agents[i])
 # game over:
