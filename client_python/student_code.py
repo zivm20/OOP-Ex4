@@ -85,7 +85,7 @@ endTime = int(client.time_to_end())
 print(endTime)
 agents = json.loads(client.get_agents())["Agents"]
 agents = [agent["Agent"] for agent in agents]
-agents_obj = [Agent(a["id"],a["speed"]/1000,a["src"],a["dest"]) for a in agents]
+agents_obj = []
 
 
 pokemon_graph = GraphAlgo()
@@ -188,6 +188,7 @@ def assign_pokemon(pokemon, agents:List[Agent],pokemon_graph:GraphAlgo):
 The code below should be improved significantly:
 The GUI and the "algo" are mixed - refactoring using MVC design pattern is required.
 """
+ttl2=0
 j=0
 while client.is_running() == 'true':
 
@@ -277,16 +278,17 @@ while client.is_running() == 'true':
     display.update()
 
     # refresh rate
-    clock.tick(100)
-    """
+    clock.tick(60)
+    
     # choose next edge
     for agent in agents:
         if agent.dest == -1:
             next_node = (agent.src - 1) % len(graph.Nodes)
             client.choose_next_edge(
                 '{"agent_id":'+str(agent.id)+', "next_node_id":'+str(next_node)+'}')
-            ttl = client.time_to_end()
-            print(ttl, client.get_info())
+            ttl = int(client.time_to_end())
+            print(str(ttl-ttl2), agent)
+    ttl2 = ttl
             #print(pokemons)
 
     if j%1==0:
@@ -302,4 +304,5 @@ while client.is_running() == 'true':
         client.move()
         #for i in range(len(agents_obj)):
             #print(agents[i])
+    """
 # game over:
