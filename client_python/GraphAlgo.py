@@ -13,33 +13,44 @@ class GraphAlgo(GraphAlgoInterface):
 
     def get_graph(self) -> GraphInterface:
         return self.graph
-    def load_from_json(self,json_path:str) -> bool:
+    def load_from_json(self,json_path:str="",json_string:str="") -> bool:
         self.graph = DiGraph()
+        data = {}
+        if json_path != "":
+            try:
+                with open(json_path,'r') as f:
+                    data = json.loads(f.read())
+                    self.load_json(data)
+            except:
+                return False
+            return True
+        elif json_string != "":
+            try:
+                data = json.loads(json_string)
+                self.load_json(data)
+            except:
+                return False
+            return True
+        return False
         
 
-        try:
-            with open(json_path,'r') as f:
-                data = json.loads(f.read())
-                for node in data["Nodes"]:
-                    if "pos" in node:
-                        pos = tuple([ float(i) for i in node["pos"].split(',')] )
-                    else:
-                        pos = None
-                    id = node["id"]
-                    
-                    self.graph.add_node(id,pos)
-                
-                for edge in data["Edges"]:
-                    src = edge["src"]
-                    dest = edge["dest"]
-                    w = edge["w"]
-                    self.graph.add_edge(src,dest,w)
-        except:
-            
-            return False
-
         return True
-
+    def load_json(self,data):
+        for node in data["Nodes"]:
+            if "pos" in node:
+                pos = tuple([ float(i) for i in node["pos"].split(',')] )
+            else:
+                pos = None
+            id = node["id"]
+            
+            self.graph.add_node(id,pos)
+        
+        for edge in data["Edges"]:
+            src = edge["src"]
+            dest = edge["dest"]
+            w = edge["w"]
+            self.graph.add_edge(src,dest,w)
+        
 
 
 
