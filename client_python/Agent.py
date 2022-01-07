@@ -15,7 +15,7 @@ class Agent:
         self.dest = dest
         self.src = src
 
-        
+        self.target = None
         self.route = []
         self.time = 0
 
@@ -35,7 +35,7 @@ class Agent:
         
         
 
-    def update(self,graph_algo:GraphAlgo,client:Client,interval=10):
+    def update(self,graph_algo:GraphAlgo,client:Client,pokemons:List[dict],interval=10):
         time = client.time_to_end()
         move = False
         #time since last update
@@ -45,7 +45,21 @@ class Agent:
         if self.dest != -1:
             self.position = self.calcPos(ellapsed_time*self.speed,self.src.getPos(),graph_algo.get_graph().get_all_v()[self.dest])
 
+
+        #check if we have found pokemon
+        found_pokemon = []
+        temp_route = []
+        for pokemon in pokemons:
+            if pokemon["src"] == self.src.getId() and self.dest == pokemon["dest"]:
+                if self.collide(pokemon["pos"],ellapsed_time,interval):
+                    found_pokemon.append(pokemon)
+                else:
+                    temp_route.append(pokemon)
+
+        if len(found_pokemon)>0:
+            move = True
         
+
         #check if we have now moved to a new edge
         if(self.collide(graph_algo.get_graph().get_all_v()[self.dest].getPos(),ellapsed_time,interval)):
             agent = [a["Agent"] for a in json.loads(client.get_agents())["Agents"] if a["Agent"]["id"]==self.id ][0]
@@ -55,14 +69,9 @@ class Agent:
             if self.update_edge(graph_algo.get_graph(),params) != -1:
                 client.choose_next_edge('{"agent_id":'+str(self.id)+', "next_node_id":'+str(self.dest)+'}')
                 move = True
-
-        #go over all pokemon, if on a pokemon, make a move
-
-
         
-
-        
-        return move
+      
+        return move, len(found_pokemon)>0
 
 
     def distance(self,p1:List[float,float],p2:List[float,float]):
@@ -77,6 +86,74 @@ class Agent:
         X = p1[0] - p2[0]
         Y = p1[1] - p2[1]
         return (p1[0] - X*distance,  p1[1] - Y*distance) 
+
+
+    def set_pokemon_target(self,graph_algo:GraphAlgo,pokemons):
+        #set target as the closest pokemon
+        min_dist = float('inf')
+        for pokemon in pokemons:
+            if pokemon["src"] == self.src.getId() and self.dest == pokemon["dest"]:
+                #handle the special case
+                continue
+            else:
+                curr_distance,path = graph_algo.shortest_path(self.dest,pokemon["src"])
+            curr_distance += self.distance(self.position, graph_algo.get_graph().get_all_v()[self.dest]) 
+            curr_distance += self.distance(graph_algo.get_graph().get_all_v()[pokemon["src"]],pokemon["pos"])
+            if curr_distance<min_dist:
+                min_dist = curr_distance
+                self.route = path + [pokemon["dest"]]
+                self.target = pokemon
+            
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
