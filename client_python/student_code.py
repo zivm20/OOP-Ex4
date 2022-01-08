@@ -85,26 +85,32 @@ endTime = int(client.time_to_end())
 print(endTime)
 agents = json.loads(client.get_agents())["Agents"]
 agents = [agent["Agent"] for agent in agents]
-agents_obj = []
+
 
 
 pokemon_graph = GraphAlgo()
 pokemon_graph.load_from_json(json_string=graph_json)
+
+
+
+agents_obj = [ Agent(int(a["id"]),float(a["speed"]),pokemon_graph.get_graph().get_all_v()[int(a["src"] )], int(a["dest"]) ) for a in agents   ]
 
 pokemon_dict = []
 current_size = pokemon_graph.get_graph().v_size()
 
 
 def load_pokemon_graph(pokemon_dict,pokemons,current_size,pokemon_graph:GraphAlgo):
-    out = []
+    out = [p for p in pokemon_dict]
     for p in pokemons:
         isIn = False
         x, y, _ = p["pos"].split(',')
-        p["_pos"] = (float(x),float(y))
-        p["pos"] = (my_scale(float(x), x=True), my_scale(float(y), y=True)) 
+        
+        p["pos"] = (float(x),float(y))
+        p["_pos"] = (my_scale(float(x), x=True), my_scale(float(y), y=True))
         
         for p_dict in pokemon_dict:
-            if p["pos"][0] == p_dict["pos"][0] and p["pos"][1] == p_dict["pos"][1] and p["type"] == p_dict["type"] and p["value"]==p_dict["value"]:
+            
+            if p["_pos"][0] == p_dict["_pos"][0] and p["_pos"][1] == p_dict["_pos"][1] and p["type"] == p_dict["type"] and p["value"]==p_dict["value"]:
                 isIn = True
         if isIn != True:
             out.append(p)
@@ -113,74 +119,60 @@ def load_pokemon_graph(pokemon_dict,pokemons,current_size,pokemon_graph:GraphAlg
             min_distance = float('inf')
             real_src = 0
             real_dest = 0
-            real_weight = 0
+            
             for src in pokemon_graph.get_graph().get_all_v().values():
                 if src.isPokemon() == False:
                     for _, weight in pokemon_graph.get_graph().all_out_edges_of_node(src.getId()).items():
                         dest = pokemon_graph.get_graph().get_all_v()[_]
                         if dest.isPokemon() == False:
-                            distance = abs(  (dest.getPos()[0] - src.getPos()[0])*(src.getPos()[1] - out[-1]["_pos"][1]) - (src.getPos()[0] - out[-1]["_pos"][0])*(dest.getPos()[1] - src.getPos()[1]))
+                            distance = abs(  (dest.getPos()[0] - src.getPos()[0])*(src.getPos()[1] - out[-1]["pos"][1]) - (src.getPos()[0] - out[-1]["pos"][0])*(dest.getPos()[1] - src.getPos()[1]))
                             distance = distance/(  ( (dest.getPos()[0] - src.getPos()[0])**2 + (dest.getPos()[1] - src.getPos()[1])**2 ) **0.5   )
-                            #line from src point to p
-                            src_p = ( (src.getPos()[0] - out[-1]["_pos"][0])**2 + (src.getPos()[1] - out[-1]["_pos"][1])**2 ) **0.5
-                            #line from dest to src
-                            dest_src = ( (dest.getPos()[0] - src.getPos()[0])**2 + (dest.getPos()[1] - src.getPos()[1])**2 ) **0.5
-                            #angle dest-src-p
-                            angle = np.arcsin(distance/src_p)
-                            #get the weight from src to p by scaling the length of the line
-                            p_weight = (src_p*np.cos(angle)/dest_src)*weight
-                            
+                           
                             if(distance < min_distance):
                                 min_distance = distance
-                                real_weight = p_weight
+                                
                                 if(out[-1]["type"]<0):
                                     real_src = max(dest.getId(), src.getId())
                                     real_dest = min(dest.getId(), src.getId())
                                 else:
                                     real_src = min(dest.getId(), src.getId())
                                     real_dest = max(dest.getId(), src.getId())
-            out[-1]["src"] = real_src
-            out[-1]["dest"] = real_dest
-            out[-1]["weight"] = real_weight
-            pokemon_graph.get_graph().add_node(out[-1]["id"],(out[-1]["_pos"][0],out[-1]["_pos"][1],0))
-            pokemon_graph.get_graph().get_all_v()[out[-1]["id"]].setPokemon(True)
-            pokemon_graph.get_graph().add_edge(out[-1]["src"],out[-1]["id"],out[-1]["weight"])
-            w = pokemon_graph.get_graph().all_out_edges_of_node(out[-1]["src"])[out[-1]["dest"]]
-            pokemon_graph.get_graph().add_edge(out[-1]["id"],out[-1]["dest"],w - out[-1]["weight"])
+            out[-1]["src"] = int(real_src)
+            out[-1]["dest"] = int(real_dest)
+            
+            
     
     return out, current_size
 
 
 
-def assign_pokemon(pokemon, agents:List[Agent],pokemon_graph:GraphAlgo):
-    #update routes
-    for agent in agents:
-        agent.updateRoute(pokemon_graph.get_graph(),pokemon["src"],pokemon["id"],pokemon["dest"])
+def assign_pokemon(pokemons_dict:List[dict], agents:List[Agent],pokemon_graph:GraphAlgo):
+    stack = [i for i in agents]
+    assignments = {}
+    pokemons = {agent.getId() : [p for p in pokemons_dict] for agent in agents}
+    while len(stack)>0:
+        agent = stack.pop(0)
+        score = agent.set_pokemon_target(pokemon_graph,pokemons[agent.getId()])
+        if agent.get_target()["id"] in assignments and len(pokemons[agent.getId()])>0:
+            if(assignments[agent.get_target()["id"]]["score"] < score ):
+                pokemons[agent.getId()].remove(agent.get_target())
+                agent.remove_target()
+                stack.append(agent)
+            elif assignments[agent.get_target()["id"]]["score"] > score:
+                a2 = assignments[agent.get_target()["id"]]["Agent"]
+                pokemons[a2.getId()].remove(agent.get_target())
+                a2.remove_target()
+                stack.append(a2)
+                assignments[agent.get_target()["id"]]["Agent"] = agent
+                assignments[agent.get_target()["id"]]["score"] = score
+        elif len(pokemons[agent.getId()])>0:
+            assignments[agent.get_target()["id"]] = {}
+            assignments[agent.get_target()["id"]]["Agent"] = agent
+            assignments[agent.get_target()["id"]]["score"] = score
 
-    #redistribute pokemon to agents
-    minChange = float('inf')
-    best_pokemon_distrib = {}
-    for agent in agents:
-        distrib = {}
-        change = agent.simulate_change(pokemon_graph,p_to_add=pokemon["id"],best_p_found=distrib)
-        
-        if(change!=0):
-            for agent2 in agents:
-                if agent != agent2:
-                    change+=agent2.simulate_change(best_p_found=distrib)
-            if change < minChange:
-                minChange = change
-                best_pokemon_distrib = distrib
-    pokemon_assign = { agent.getId():[] for agent in agents}
-    #get the best destribution
-    for key, value in best_pokemon_distrib.items():
-        if pokemon_graph.get_graph().get_all_v()[key].isPokemon():
-            pokemon_assign[value["id"]].append(key)
     
-    #build from that distribution
-    for agent in agents:
-        t,sr,de = agent.build_route_from_pokemons(pokemon_graph,pokemon_assign[agent.getId()],inplace=True)
-        #print(t)
+    
+
         
         
 
@@ -190,16 +182,25 @@ The GUI and the "algo" are mixed - refactoring using MVC design pattern is requi
 """
 ttl2=0
 j=0
-while client.is_running() == 'true':
 
-    pokemons = json.loads(client.get_pokemons())["Pokemons"]
-    pokemons = [p["Pokemon"] for p in pokemons]
+#first init
+
+client.move()
+
+found_pokemon = None
+
+while client.is_running() == 'true':
     
-    new_pokemons,current_size = load_pokemon_graph(pokemon_dict,pokemons,current_size,pokemon_graph)
-    
-    for pokemon in new_pokemons:
-        assign_pokemon(pokemon,agents_obj,pokemon_graph)
-    pokemon_dict = pokemon_dict+new_pokemons
+
+    if found_pokemon==None or len(found_pokemon)>0:
+        pokemons = json.loads(client.get_pokemons())["Pokemons"]
+        pokemons = [p["Pokemon"] for p in pokemons]
+        pokemon_dict,current_size = load_pokemon_graph(pokemon_dict,pokemons,current_size,pokemon_graph)
+        assign_pokemon(pokemon_dict,agents_obj,pokemon_graph)
+        move = True
+        found_pokemon = []
+    else:
+        move = False
     
     pokemons = json.loads(client.get_pokemons(),
                         object_hook=lambda d: SimpleNamespace(**d)).Pokemons
@@ -262,47 +263,52 @@ while client.is_running() == 'true':
                            (int(agent.pos.x), int(agent.pos.y)), 10)
     # draw pokemons (note: should differ (GUI wise) between the up and the down pokemons (currently they are marked in the same way).
     for i in range(len(pokemons)):
-
         #pygame.draw.circle(screen, Color(0, 255, 255), (int(p.pos.x), int(p.pos.y)), 10)
         gfxdraw.filled_circle(screen, int(pokemons[i].pos.x), int(pokemons[i].pos.y),
                               radius, Color(0, 255, 255))
         gfxdraw.aacircle(screen, int(pokemons[i].pos.x), int(pokemons[i].pos.y),
                          radius, Color(255, 255, 255))
         for p_dict in pokemon_dict:
-            if pokemons[i].pos.x == p_dict["pos"][0] and pokemons[i].pos.y == p_dict["pos"][1] and pokemons[i].type == p_dict["type"] and pokemons[i].value==p_dict["value"]:
+            if pokemons[i].pos.x == p_dict["_pos"][0] and pokemons[i].pos.y == p_dict["_pos"][1] and pokemons[i].type == p_dict["type"] and pokemons[i].value==p_dict["value"]:
                 id_srf = FONT2.render(str(p_dict["id"])+","+str(pokemons[i].type), True, Color(0, 0, 0))
         rect = id_srf.get_rect(center=(int(pokemons[i].pos.x), int(pokemons[i].pos.y)))
         screen.blit(id_srf, rect)
 
     # update screen changes
     display.update()
-
     # refresh rate
-    clock.tick(60)
+    clock.tick(100)
     
-    # choose next edge
-    for agent in agents:
-        if agent.dest == -1:
-            next_node = (agent.src - 1) % len(graph.Nodes)
-            client.choose_next_edge(
-                '{"agent_id":'+str(agent.id)+', "next_node_id":'+str(next_node)+'}')
-            ttl = int(client.time_to_end())
-            print(str(ttl-ttl2), agent)
-    ttl2 = ttl
-            #print(pokemons)
-
-    if j%1==0:
-        client.move()
-    j+=1
-    """
-    update = False
+    
+    
     for i in range(len(agents_obj)):
-        if(agents_obj[i].update(pokemon_graph,client, endTime-int(client.time_to_end()),real_dest=agents[i].dest )):
-            update = True
-            print(len(pokemon_dict))
-    if update:
+        agents_obj[i]
+        flg, temp = agents_obj[i].update(pokemon_graph,client,pokemon_dict)
+        found_pokemon = found_pokemon + temp
+        if flg:
+            move = flg
+    if move:
+        startTime = client.time_to_end()
+                
+        for agent in agents_obj:
+            agent.server_update(client,pokemon_graph)
+            id,dest = agent.update_route()
+            if(dest != -1):
+                client.choose_next_edge('{"agent_id":'+str(id)+', "next_node_id":'+str(dest)+'}')
         client.move()
-        #for i in range(len(agents_obj)):
-            #print(agents[i])
-    """
+    
+
+
+    
+    
+    
+        
+            
+
+        
+
+
+
+
 # game over:
+
