@@ -34,8 +34,8 @@ client.start_connection(HOST, PORT)
 
 pokemons = client.get_pokemons()
 pokemons_obj = json.loads(pokemons, object_hook=lambda d: SimpleNamespace(**d))
-
 graph_json = client.get_graph()
+
 FONT = pygame.font.SysFont('Arial', 20, bold=True)
 FONT2 = pygame.font.SysFont('Arial', 12, bold=True)
 # load the json string into SimpleNamespace Object

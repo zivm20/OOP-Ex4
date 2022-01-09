@@ -50,7 +50,6 @@ class DiGraph(GraphInterface):
     def add_node(self, node_id: int, pos: tuple = None) -> bool:
         if (node_id in self.nodes) == False:
             self.nodes[node_id] = Node(node_id,pos,self.v_size())
-            print("add_node")
             self.mc+=1
             return True
         return False

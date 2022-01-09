@@ -25,18 +25,17 @@ class GraphAlgo(GraphAlgoInterface):
                 return False
             return True
         elif json_string != "":
-            #try:
-            data = json.loads(json_string)
-            self.load_json(data)
-            #except:
-                #return False
+            try:
+                data = json.loads(json_string)
+                self.load_json(data)
+            except:
+                return False
             return True
         return False
         
 
-        
+        return True
     def load_json(self,data):
-        
         for node in data["Nodes"]:
             if "pos" in node:
                 pos = tuple([ float(i) for i in node["pos"].split(',')] )
@@ -45,7 +44,7 @@ class GraphAlgo(GraphAlgoInterface):
             id = node["id"]
             
             self.graph.add_node(id,pos)
-            
+        
         for edge in data["Edges"]:
             src = edge["src"]
             dest = edge["dest"]
@@ -64,7 +63,7 @@ class GraphAlgo(GraphAlgoInterface):
                 for childIdx,w in self.graph.all_out_edges_of_node(idx).items():
                     data["Edges"].append({
                         "src":idx,
-                        "w":w.weight,
+                        "w":w,
                         "dest":childIdx
                     })
                 pos = str(self.graph.get_all_v()[idx].getPos())
