@@ -87,21 +87,18 @@ while len(distances)>0:
             if client.add_agent("{\"id\":"+str(best_id)+"}") == "false":
                 break
             else:
-                print("added")
+                print("added agent on",best_id)
                 
     else:
         if client.add_agent("{\"id\":"+str(best_id)+"}") == "false":
             break
         else:
-            print("added")
+            print("added agent on",best_id)
     del distances[best_id]
 
 
 
-print(client.add_agent("{\"id\":0}"))
-print(client.add_agent("{\"id\":1}"))
-print(client.add_agent("{\"id\":2}"))
-print(client.add_agent("{\"id\":3}"))
+
 
 # this commnad starts the server - the game is running now
 client.start()
@@ -113,8 +110,6 @@ agents = [agent["Agent"] for agent in agents]
 
 
 
-
-print(pokemon_graph.get_graph().get_all_v())
 
 agents_obj = [ Agent(int(a["id"]),float(a["speed"]),pokemon_graph.get_graph().get_all_v()[int(a["src"] )], int(a["dest"]) ) for a in agents   ]
 
@@ -219,9 +214,7 @@ while client.is_running() == 'true':
     found_pokemon = []
     move = False
 
-    
-        
-    
+
     pokemons = json.loads(client.get_pokemons(),
                         object_hook=lambda d: SimpleNamespace(**d)).Pokemons
     pokemons = [p.Pokemon for p in pokemons]
@@ -308,7 +301,7 @@ while client.is_running() == 'true':
         agents_obj[i]
         flg, temp = agents_obj[i].update(pokemon_graph,client,pokemon_dict)
         found_pokemon = found_pokemon + temp
-        agents_obj[0].debug()
+        #agents_obj[0].debug()
         if flg or len(temp)>0:
             move = flg or len(temp)>0
         
@@ -336,9 +329,7 @@ while client.is_running() == 'true':
         temp = agent["pos"].split(",")[:-1]
         p = (float(temp[0]),float(temp[1]))
         
-        #print("real pos:", p,agent["src"],agent["dest"] )
-        #print("time to end: ",client.time_to_end())
-        
+       
     
 
 

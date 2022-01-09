@@ -1,2 +1,3 @@
-start java -jar Ex4_Server_v0.0.jar 1
+start prog_start.bat 0
+pause
 

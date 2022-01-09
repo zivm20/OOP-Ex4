@@ -29,8 +29,6 @@ class Agent:
                 if self.collide(graph_algo,pokemon["pos"]):
                     found_pokemon.append(pokemon)
                     if pokemon == self.target:
-                        #print(self.distance(self.position,pokemon["pos"]))
-                        #print("agent pos:",self.position,pokemon["pos"])
                         self.remove_target()
                     
         return found_pokemon
@@ -175,7 +173,6 @@ class Agent:
         flg = pokemon["dest"]==self.dest and pokmeon_src_pos_weight>self.weight
         #special case where the pokemon is on the same edge as we are on and we have yet to pass it 
         if pokemon["src"] == self.src.getId() and (self.dest == -1 or flg):
-            print("case 1:","  src:",pokemon["src"],"  dest:",pokemon["dest"],"  id:",pokemon["id"],"  distance diff:",str(self.distance(pokemon["pos"],self.position)-self.distance(pokemon["pos"],self.calcPos(self.interval*self.speed,graph_algo)) ))
             if self.dest == -1:
                 curr_distance = graph_algo.get_graph().all_out_edges_of_node(pokemon["src"])[pokemon["dest"]]
                 path = [pokemon["dest"]]
@@ -183,7 +180,7 @@ class Agent:
             if self.dest == -1 and self.src.getId() != pokemon["src"]:
                 #agent src -> pokemon src
                 curr_distance,path = graph_algo.shortest_path(self.src.getId(),pokemon["src"])
-                print("case 2",pokemon["src"],pokemon["dest"],pokemon["id"])
+                #print("case 2",pokemon["src"],pokemon["dest"],pokemon["id"])
             else:
                 #agent dest -> pokemon src
                 curr_distance,path = graph_algo.shortest_path(self.dest,pokemon["src"],edge_bonuses)
