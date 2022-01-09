@@ -1,3 +1,2 @@
-start prog_start.bat 0
-pause
+prog_start.bat 3
 

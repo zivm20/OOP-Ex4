@@ -85,18 +85,15 @@ class GraphAlgo(GraphAlgoInterface):
 
 
 
-    def shortest_path(self, id1: int, id2: int,edge_bonuses:dict={}) -> tuple[float, List[int]]:
+    def shortest_path(self, id1: int, id2: int) -> tuple[float, List[int]]:
         for k,v in self.graph.get_all_v().items():
            v.setDistance(float('inf'))
            v.setColor("white")
            v.setPrev(None)
-           v.setValue(0)
 
         self.graph.get_all_v()[id1].setDistance(0)
-        if "target_val" in edge_bonuses:
-            self.graph.get_all_v()[id1].setValue(edge_bonuses["target_val"])
         unVisited = []
-        self.add_next_nodes(unVisited,id1,edge_bonuses)
+        self.add_next_nodes(unVisited,id1)
 
         while len(unVisited) > 0:
             
@@ -106,7 +103,7 @@ class GraphAlgo(GraphAlgoInterface):
             if self.graph.get_all_v()[current].getColor() != "white":
                 continue
             self.graph.get_all_v()[current].setColor("black")
-            self.add_next_nodes(unVisited,current,edge_bonuses)
+            self.add_next_nodes(unVisited,current)
         if(self.graph.get_all_v()[id2].getDistance()) == float('inf'):
             return float('inf'), []
         
@@ -123,23 +120,11 @@ class GraphAlgo(GraphAlgoInterface):
         return
 
 
-    def add_next_nodes(self,lst:List[dict], node_id:int,edge_bonuses:dict={})->None:
+    def add_next_nodes(self,lst:List[dict], node_id:int)->None:
         for k,v in self.graph.all_out_edges_of_node(node_id).items():
             if self.graph.get_all_v()[k].getColor() == "white":
-                weight = v
-                value = 0
-                val_scale=1
-                weight_scale = 1
-                if node_id in edge_bonuses and k in edge_bonuses[node_id] and edge_bonuses[node_id][k] != 0:
-                    value = edge_bonuses[node_id][k]
-                    val_scale = self.graph.get_all_v()[k].getValue()/(self.graph.get_all_v()[node_id].getValue()+value)
-
-                if self.graph.get_all_v()[k].getDistance() != float('inf'):
-                    weight_scale = self.graph.get_all_v()[k].getDistance()/(self.graph.get_all_v()[node_id].getDistance()+weight)
-                
-                if self.graph.get_all_v()[k].getDistance() == float('inf') or val_scale < weight_scale:
-                    self.graph.get_all_v()[k].setDistance(self.graph.get_all_v()[node_id].getDistance()+weight)
-                    self.graph.get_all_v()[k].setValue(self.graph.get_all_v()[node_id].getValue()+value)
+                if self.graph.get_all_v()[k].getDistance() > self.graph.get_all_v()[node_id].getDistance()+v:
+                    self.graph.get_all_v()[k].setDistance(self.graph.get_all_v()[node_id].getDistance()+v)
                     self.graph.get_all_v()[k].setPrev(node_id)                
                 idx = 0
                 while idx<len(lst) and self.graph.get_all_v()[lst[idx]].getDistance() < self.graph.get_all_v()[k].getDistance():
