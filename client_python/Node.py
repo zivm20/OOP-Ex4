@@ -1,4 +1,5 @@
 import random
+import numpy as np
 class Node:
     def __init__(self,node_id: int, pos: tuple = None,random_range=10):
         self.parents = {}
@@ -6,7 +7,6 @@ class Node:
         random_range = max(10,random_range)
         self.id = node_id
         self.color = "white"
-        self.pokemon = False
         self.distance = float('inf')
         self.prev = None
         if pos==None:

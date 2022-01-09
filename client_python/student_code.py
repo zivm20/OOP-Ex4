@@ -74,6 +74,31 @@ def my_scale(data, x=False, y=False):
 
 radius = 15
 
+
+#choose starting point of nodes based on graph center point
+pokemon_graph = GraphAlgo()
+pokemon_graph.load_from_json(json_string=graph_json)
+distanceMat = pokemon_graph.all_pairs_shortest_path()
+distances = { i: max(nodes.values())  for i,nodes in  distanceMat.items()}
+
+while len(distances)>0:
+    best_id = min(distances.items(), key=lambda x: x[1])[0]
+    if len(distances)==1:
+        while len(distances)==1:
+            if client.add_agent("{\"id\":"+str(best_id)+"}") == "false":
+                break
+            else:
+                print("added")
+                
+    else:
+        if client.add_agent("{\"id\":"+str(best_id)+"}") == "false":
+            break
+        else:
+            print("added")
+    del distances[best_id]
+
+
+
 print(client.add_agent("{\"id\":0}"))
 print(client.add_agent("{\"id\":1}"))
 print(client.add_agent("{\"id\":2}"))
@@ -88,8 +113,7 @@ agents = [agent["Agent"] for agent in agents]
 
 
 
-pokemon_graph = GraphAlgo()
-pokemon_graph.load_from_json(json_string=graph_json)
+
 
 
 
@@ -289,7 +313,6 @@ while client.is_running() == 'true':
         if flg or len(temp)>0:
             move = flg or len(temp)>0
         
-            
     if move:
         startTime = client.time_to_end()
         agent_states = client.move()
@@ -306,17 +329,16 @@ while client.is_running() == 'true':
             id,dest = agent.update_route()
             if(dest != -1):
                 client.choose_next_edge('{"agent_id":'+str(id)+', "next_node_id":'+str(dest)+'}')
-                print(dest)
                 
-        agent_states = client.move()
+                
+        
+        #agent_states = client.move()
         agent = [a["Agent"] for a in json.loads(agent_states)["Agents"]][0]
         temp = agent["pos"].split(",")[:-1]
         p = (float(temp[0]),float(temp[1]))
-        #agent_states = client.move()
-        #for agent in agents_obj:
-            #agent.server_update(agent_states,client.time_to_end(),pokemon_graph)
         
-        print("real pos:", p,agent["src"],agent["dest"] )
+        #print("real pos:", p,agent["src"],agent["dest"] )
+        #print("time to end: ",client.time_to_end())
         
     
 

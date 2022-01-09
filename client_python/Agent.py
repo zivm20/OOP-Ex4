@@ -29,8 +29,8 @@ class Agent:
                 if self.collide(graph_algo,pokemon["pos"]):
                     found_pokemon.append(pokemon)
                     if pokemon == self.target:
-                        print(self.distance(self.position,pokemon["pos"]))
-                        print("agent pos:",self.position,pokemon["pos"])
+                        #print(self.distance(self.position,pokemon["pos"]))
+                        #print("agent pos:",self.position,pokemon["pos"])
                         self.remove_target()
                     
         return found_pokemon
@@ -42,9 +42,6 @@ class Agent:
         move = False
         self.time = time
         
-
-        #if len(self.route) == 0 and self.target != None and (self.target["src"] != self.src.getId() or self.dest != self.target["dest"]):
-            #curr_distance,self.dest
 
 
         #route has nodes yet dest is -1
@@ -148,32 +145,44 @@ class Agent:
 
     def path_to_pokemon(self,graph_algo:GraphAlgo,pokemon):
         curr_distance=0
+
+        #pokemon src -> pokemon pos
+        scale = graph_algo.get_graph().all_out_edges_of_node(pokemon["src"])[pokemon["dest"]] * self.distance(graph_algo.get_graph().get_all_v()[pokemon["src"]].getPos(),graph_algo.get_graph().get_all_v()[pokemon["dest"]].getPos())
+        pokmeon_src_pos_weight = self.distance(graph_algo.get_graph().get_all_v()[pokemon["src"]].getPos(),pokemon["pos"])*scale
+
         path = []
         #check if we have passed the pokemon or not
-        flg = pokemon["dest"]==self.dest and self.distance(pokemon["pos"],self.position) >= self.distance(pokemon["pos"],self.calcPos(self.interval*self.speed,graph_algo))
+        flg = pokemon["dest"]==self.dest and pokmeon_src_pos_weight>self.weight
         #special case where the pokemon is on the same edge as we are on and we have yet to pass it 
         if pokemon["src"] == self.src.getId() and (self.dest == -1 or flg):
             curr_distance = self.distance(pokemon["pos"],self.position)/self.distance(graph_algo.get_graph().get_all_v()[pokemon["src"]].getPos(),graph_algo.get_graph().get_all_v()[pokemon["dest"]].getPos())
             curr_distance = curr_distance*graph_algo.get_graph().all_out_edges_of_node(pokemon["src"])[pokemon["dest"]]
+            print("case 1:","  src:",pokemon["src"],"  dest:",pokemon["dest"],"  id:",pokemon["id"],"  distance diff:",str(self.distance(pokemon["pos"],self.position)-self.distance(pokemon["pos"],self.calcPos(self.interval*self.speed,graph_algo)) ))
             if self.dest == -1:
                 path = [pokemon["dest"]]
         else:
             if self.dest == -1 and self.src.getId() != pokemon["src"]:
                 curr_distance,path = graph_algo.shortest_path(self.src.getId(),pokemon["src"])
+                print("case 2",pokemon["src"],pokemon["dest"],pokemon["id"])
             else:
                 #agent dest -> pokemon src
                 curr_distance,path = graph_algo.shortest_path(self.dest,pokemon["src"])
 
-                scale = self.src.getChildren()[self.dest]/self.distance(self.src.getPos(), graph_algo.get_graph().get_all_v()[self.dest].getPos())
                 #agent pos -> agent dest -> pokemon src
-                curr_distance += self.distance(self.position, graph_algo.get_graph().get_all_v()[self.dest].getPos())*scale
+                curr_distance += self.src.getChildren()[self.dest] - self.weight
+                print("case 3",pokemon["src"],pokemon["dest"],pokemon["id"])
 
-            scale = graph_algo.get_graph().all_out_edges_of_node(pokemon["src"])[pokemon["dest"]] * self.distance(graph_algo.get_graph().get_all_v()[pokemon["src"]].getPos(),graph_algo.get_graph().get_all_v()[pokemon["dest"]].getPos())
             #agent pos -> agent dest -> pokemon src -> pokemon pos
-            curr_distance += self.distance(graph_algo.get_graph().get_all_v()[pokemon["src"]].getPos(),pokemon["pos"])*scale
+            curr_distance += pokmeon_src_pos_weight
             path = path + [pokemon["dest"]]
         
         return curr_distance,path
+
+
+
+
+
+
 
     def remove_target(self):
         self.target = None
