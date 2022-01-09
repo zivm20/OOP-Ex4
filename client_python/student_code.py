@@ -100,7 +100,7 @@ current_size = pokemon_graph.get_graph().v_size()
 
 
 def load_pokemon_graph(pokemon_dict,pokemons,current_size,pokemon_graph:GraphAlgo):
-    out = [p for p in pokemon_dict]
+    out = []
     for p in pokemons:
         isIn = False
         x, y, _ = p["pos"].split(',')
@@ -109,9 +109,9 @@ def load_pokemon_graph(pokemon_dict,pokemons,current_size,pokemon_graph:GraphAlg
         p["_pos"] = (my_scale(float(x), x=True), my_scale(float(y), y=True))
         
         for p_dict in pokemon_dict:
-            
             if p["_pos"][0] == p_dict["_pos"][0] and p["_pos"][1] == p_dict["_pos"][1] and p["type"] == p_dict["type"] and p["value"]==p_dict["value"]:
                 isIn = True
+                out.append(p_dict)
         if isIn != True:
             out.append(p)
             out[-1]["id"] = current_size
@@ -184,23 +184,20 @@ ttl2=0
 j=0
 
 #first init
+pokemons = json.loads(client.get_pokemons())["Pokemons"]
+pokemons = [p["Pokemon"] for p in pokemons]
+pokemon_dict,current_size = load_pokemon_graph(pokemon_dict,pokemons,current_size,pokemon_graph)        
+assign_pokemon(pokemon_dict,agents_obj,pokemon_graph)
 
-client.move()
 
-found_pokemon = None
+
 
 while client.is_running() == 'true':
-    
+    found_pokemon = []
+    move = False
 
-    if found_pokemon==None or len(found_pokemon)>0:
-        pokemons = json.loads(client.get_pokemons())["Pokemons"]
-        pokemons = [p["Pokemon"] for p in pokemons]
-        pokemon_dict,current_size = load_pokemon_graph(pokemon_dict,pokemons,current_size,pokemon_graph)
-        assign_pokemon(pokemon_dict,agents_obj,pokemon_graph)
-        move = True
-        found_pokemon = []
-    else:
-        move = False
+    
+        
     
     pokemons = json.loads(client.get_pokemons(),
                         object_hook=lambda d: SimpleNamespace(**d)).Pokemons
@@ -278,24 +275,49 @@ while client.is_running() == 'true':
     display.update()
     # refresh rate
     clock.tick(100)
+  
     
-    
-    
+    found_pokemon = []
+    move = False
+
+    route_update_req = {}
     for i in range(len(agents_obj)):
         agents_obj[i]
         flg, temp = agents_obj[i].update(pokemon_graph,client,pokemon_dict)
         found_pokemon = found_pokemon + temp
-        if flg:
-            move = flg
+        agents_obj[0].debug()
+        if flg or len(temp)>0:
+            move = flg or len(temp)>0
+        
+            
     if move:
         startTime = client.time_to_end()
-                
+        agent_states = client.move()
         for agent in agents_obj:
-            agent.server_update(client,pokemon_graph)
+            agent.server_update(agent_states,client.time_to_end(),pokemon_graph)
+
+        if len(found_pokemon)>0:
+            pokemons = json.loads(client.get_pokemons())["Pokemons"]
+            pokemons = [p["Pokemon"] for p in pokemons]
+            pokemon_dict,current_size = load_pokemon_graph(pokemon_dict,pokemons,current_size,pokemon_graph)        
+            assign_pokemon(pokemon_dict,agents_obj,pokemon_graph)
+
+        for agent in agents_obj:
             id,dest = agent.update_route()
             if(dest != -1):
                 client.choose_next_edge('{"agent_id":'+str(id)+', "next_node_id":'+str(dest)+'}')
-        client.move()
+                print(dest)
+                
+        agent_states = client.move()
+        agent = [a["Agent"] for a in json.loads(agent_states)["Agents"]][0]
+        temp = agent["pos"].split(",")[:-1]
+        p = (float(temp[0]),float(temp[1]))
+        #agent_states = client.move()
+        #for agent in agents_obj:
+            #agent.server_update(agent_states,client.time_to_end(),pokemon_graph)
+        
+        print("real pos:", p,agent["src"],agent["dest"] )
+        
     
 
 
