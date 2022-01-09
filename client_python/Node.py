@@ -8,6 +8,7 @@ class Node:
         self.color = "white"
         self.pokemon = False
         self.distance = float('inf')
+        self.value = 0
         self.prev = None
         if pos==None:
             pos =tuple([random.randrange(-10,10) for _ in range(3)])
@@ -29,6 +30,11 @@ class Node:
     def getId(self) -> int:
         return self.id
 
+    def getValue(self):
+        return self.value
+
+    def setValue(self,v):
+        self.value = v
 
     def getColor(self) -> str:
         return self.color
