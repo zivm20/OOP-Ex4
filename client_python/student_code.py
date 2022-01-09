@@ -36,7 +36,6 @@ pokemons = client.get_pokemons()
 pokemons_obj = json.loads(pokemons, object_hook=lambda d: SimpleNamespace(**d))
 
 graph_json = client.get_graph()
-
 FONT = pygame.font.SysFont('Arial', 20, bold=True)
 FONT2 = pygame.font.SysFont('Arial', 12, bold=True)
 # load the json string into SimpleNamespace Object
@@ -115,7 +114,7 @@ agents = [agent["Agent"] for agent in agents]
 
 
 
-
+print(pokemon_graph.get_graph().get_all_v())
 
 agents_obj = [ Agent(int(a["id"]),float(a["speed"]),pokemon_graph.get_graph().get_all_v()[int(a["src"] )], int(a["dest"]) ) for a in agents   ]
 
@@ -145,22 +144,22 @@ def load_pokemon_graph(pokemon_dict,pokemons,current_size,pokemon_graph:GraphAlg
             real_dest = 0
             
             for src in pokemon_graph.get_graph().get_all_v().values():
-                if src.isPokemon() == False:
-                    for _, weight in pokemon_graph.get_graph().all_out_edges_of_node(src.getId()).items():
-                        dest = pokemon_graph.get_graph().get_all_v()[_]
-                        if dest.isPokemon() == False:
-                            distance = abs(  (dest.getPos()[0] - src.getPos()[0])*(src.getPos()[1] - out[-1]["pos"][1]) - (src.getPos()[0] - out[-1]["pos"][0])*(dest.getPos()[1] - src.getPos()[1]))
-                            distance = distance/(  ( (dest.getPos()[0] - src.getPos()[0])**2 + (dest.getPos()[1] - src.getPos()[1])**2 ) **0.5   )
-                           
-                            if(distance < min_distance):
-                                min_distance = distance
-                                
-                                if(out[-1]["type"]<0):
-                                    real_src = max(dest.getId(), src.getId())
-                                    real_dest = min(dest.getId(), src.getId())
-                                else:
-                                    real_src = min(dest.getId(), src.getId())
-                                    real_dest = max(dest.getId(), src.getId())
+                
+                for _, weight in pokemon_graph.get_graph().all_out_edges_of_node(src.getId()).items():
+                    dest = pokemon_graph.get_graph().get_all_v()[_]
+
+                    distance = abs(  (dest.getPos()[0] - src.getPos()[0])*(src.getPos()[1] - out[-1]["pos"][1]) - (src.getPos()[0] - out[-1]["pos"][0])*(dest.getPos()[1] - src.getPos()[1]))
+                    distance = distance/(  ( (dest.getPos()[0] - src.getPos()[0])**2 + (dest.getPos()[1] - src.getPos()[1])**2 ) **0.5   )
+                    
+                    if(distance < min_distance):
+                        min_distance = distance
+                        
+                        if(out[-1]["type"]<0):
+                            real_src = max(dest.getId(), src.getId())
+                            real_dest = min(dest.getId(), src.getId())
+                        else:
+                            real_src = min(dest.getId(), src.getId())
+                            real_dest = max(dest.getId(), src.getId())
             out[-1]["src"] = int(real_src)
             out[-1]["dest"] = int(real_dest)
             
