@@ -131,12 +131,9 @@ class Agent:
                 edge_bonuses[pokemon["src"]][pokemon["dest"]]=0
             edge_bonuses[pokemon["src"]][pokemon["dest"]] += pokemon["value"]
         
-        for src in edge_bonuses:
-            for dest in edge_bonuses[src]:
-                print(src,dest,edge_bonuses[src][dest])
+       
 
-        print("")
-        print("")
+        
 
         #set target as the closest pokemon
         min_dist = float('inf')
@@ -152,7 +149,7 @@ class Agent:
                 total_val = 1
             
             #decision function
-            curr_distance = curr_distance
+            curr_distance = curr_distance/total_val
 
             if curr_distance<min_dist:
                 min_dist = curr_distance
