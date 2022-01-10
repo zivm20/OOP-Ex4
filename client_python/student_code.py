@@ -283,7 +283,7 @@ while startTime - int(round(time.get_ticks() * 1000)) <= endTime and run:
     # draw pokemons (note: should differ (GUI wise) between the up and the down pokemons (currently they are marked in the same way).
     for i in range(len(pokemons)):
         
-        id = None
+        id = -1
         src = 0
         dest = 0
         for p_dict in pokemon_dict:

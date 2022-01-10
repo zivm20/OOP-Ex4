@@ -39,9 +39,7 @@ class Agent:
         ellapsed_time = self.time-time
         move = False
         self.time = time
-        
-
-
+   
         #route has nodes yet dest is -1
         if len(self.route)>0 and (self.dest == -1):
             move = True
@@ -131,10 +129,6 @@ class Agent:
                 edge_bonuses[pokemon["src"]][pokemon["dest"]]=0
             edge_bonuses[pokemon["src"]][pokemon["dest"]] += pokemon["value"]
         
-       
-
-        
-
         #set target as the closest pokemon
         min_dist = float('inf')
         for pokemon in pokemons:     
@@ -189,11 +183,6 @@ class Agent:
             path = path + [pokemon["dest"]]
         
         return curr_distance,path
-
-
-
-
-
 
 
     def remove_target(self):
